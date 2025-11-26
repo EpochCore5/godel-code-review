@@ -1,0 +1,52 @@
+name: 'IntegrityGate'
+description: 'Verify code integrity with cryptographic signatures, Merkle tree validation, and OPA policy compliance. Part of the EpochCore Quantum ecosystem.'
+author: 'EpochQuantum'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  mode:
+    description: 'Verification mode: quick, standard, or deep'
+    required: false
+    default: 'standard'
+  policy-path:
+    description: 'Path to OPA policy files'
+    required: false
+    default: '.epochcore/policies'
+  signature-verify:
+    description: 'Enable cryptographic signature verification'
+    required: false
+    default: 'true'
+  merkle-validate:
+    description: 'Enable Merkle tree validation for file integrity'
+    required: false
+    default: 'true'
+  fail-on-warning:
+    description: 'Fail the action on warnings (not just errors)'
+    required: false
+    default: 'false'
+  license-key:
+    description: 'EpochCore license key for Pro/Enterprise features'
+    required: false
+    default: ''
+  worker-endpoint:
+    description: 'Custom EpochCore worker endpoint'
+    required: false
+    default: 'https://epochcore-unified-worker.epochcoreras.workers.dev'
+
+outputs:
+  integrity-score:
+    description: 'Overall integrity score (0-100)'
+  signature-status:
+    description: 'Signature verification result'
+  merkle-root:
+    description: 'Computed Merkle root hash'
+  policy-violations:
+    description: 'Number of OPA policy violations'
+  report-url:
+    description: 'URL to detailed integrity report'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
