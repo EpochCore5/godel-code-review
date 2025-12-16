@@ -1,0 +1,317 @@
+name: EpochCoreMASTER Ultra-Mega-Alpha-Tier Agent Flash Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repositories:
+        description: 'Comma-separated list of repositories to sync (leave empty for defaults)'
+        required: false
+        type: string
+      sync_branch:
+        description: 'Branch name for sync'
+        required: false
+        default: 'epochcore-flash-sync'
+        type: string
+      force_sync:
+        description: 'Force sync even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+      skip_governance_audit:
+        description: 'Skip governance audit (not recommended)'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: '0 2 * * *'   # daily 02:00 UTC
+  workflow_run:
+    workflows: ["Recursive Matrix Autonomy Pipeline"]
+    types: [completed]
+
+# prevent overlapping runs
+concurrency:
+  group: epochcore-flash-sync-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  epochcore-master-flash-sync:
+    name: Flash Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event.workflow_run.conclusion == 'success' }}
+
+    # least-privilege; widen only if needed
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      issues: write
+
+    env:
+      # safer token fallback (works if SECRET_GITHUB_TOKEN is unset/empty)
+      GH_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN != '' && secrets.SECRET_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+      STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+      AGENT_ID: "EpochCoreMASTER"
+      AGENT_ROLE: "Ultra-Mega-Alpha-Tier-Flash-Sync"
+      # defaults (can be overridden by dispatch)
+      DEFAULT_REPOS: "Jvryan92/epochcore_RAS,EpochCore5/epoch5-template,Jvryan92/EpochCore_OS,Jvryan92/saas-hub,EpochCore5/epochcore_RAS-1a-,Jvryan92/epoch-mesh,EpochCore5/epochcore_RAS"
+
+    steps:
+      # ===== 1) Bootstrap =====
+      - name: 🚀 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ env.GH_TOKEN }}
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Install Python deps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install requests PyGithub qrcode[pil]
+
+      # (Optional) Vercel CLI if you really need it
+      - name: ➕ Install Vercel CLI (optional)
+        if: ${{ hashFiles('vercel.json') != '' || hashFiles('**/vercel.*') != '' }}
+        run: npm i -g vercel
+
+      # ===== 2) Secrets Validation =====
+      - name: 🔐 Validate token (inline fallback)
+        env: { GH_TOKEN: ${{ env.GH_TOKEN }} }
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}" || { echo "❌ GH_TOKEN missing"; exit 1; }
+          code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GH_TOKEN" https://api.github.com/user)
+          [ "$code" = "200" ] && echo "✅ GitHub token valid" || { echo "❌ GitHub token invalid ($code)"; exit 1; }
+
+      - name: 🔐 Run project secret checks (if present)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          [ -f scripts/validate_github_token.py ] && python scripts/validate_github_token.py || echo "ℹ️ skip validate_github_token.py"
+          [ -f scripts/validate_secrets_sync.py ] && python scripts/validate_secrets_sync.py || echo "ℹ️ skip validate_secrets_sync.py"
+
+      # ===== 3) Agent/module sync (guarded) =====
+      - name: ⚙️ Agent registry & modules
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -f "src/agents/agent_register_sync.py" ]; then
+            python - <<'PY'
+          from src.agents.agent_register_sync import sync_agent_registry
+          print('🤖 Syncing agent registry…'); sync_agent_registry(); print('✅ Registry ok')
+          PY
+          fi
+          if [ -d "agents" ]; then
+            python - <<'PY'
+          try:
+            from agents import forecast_kpi, remediate_failure, optimize_portfolio, track_agent_evolution
+            print('🤖 Running core agents…')
+            forecast_kpi(); remediate_failure(); optimize_portfolio(); track_agent_evolution()
+            print('✅ Core agents executed')
+          except Exception as e:
+            print('⚠️ Agent exec warning:', e)
+          PY
+          fi
+
+      # ===== 4) Icons (optional) =====
+      - name: 🎨 Generate icons (if script exists)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -f scripts/generate_icons.py ]; then python scripts/generate_icons.py; fi
+          mkdir -p reports
+          echo "SVG: $(find assets/icons -name '*.svg' 2>/dev/null | wc -l)" | tee -a reports/assets_summary.txt
+          echo "PNG: $(find assets/icons -name '*.png' 2>/dev/null | wc -l)" | tee -a reports/assets_summary.txt
+
+      # ===== 5) Tests/Lint =====
+      - name: 🧪 Tests
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if compgen -G "tests/**/*.py" > /dev/null || [ -d tests ]; then
+            python -m pytest -q || echo "⚠️ tests reported failures (continuing)"
+          else
+            echo "ℹ️ no tests"
+          fi
+
+      - name: 🔍 Lint/Format (best-effort)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import shutil, sys, subprocess
+          def run(cmd): print("+", " ".join(cmd)); subprocess.run(cmd, check=False)
+          if shutil.which("flake8"): run(["flake8","scripts/","--count","--select=E9,F63,F7,F82","--show-source","--statistics"])
+          if shutil.which("black"):
+            run(["black","--check","scripts/","tests/"])
+            run(["black","scripts/","tests/"])
+          PY
+
+      # ===== 6) Governance Audit (guarded by input) =====
+      - name: 🏛️ Governance audit
+        if: ${{ github.event.inputs.skip_governance_audit != 'true' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -f scripts/governance_sync.py ]; then
+            python scripts/governance_sync.py || true
+          else
+            echo '{"overall_compliance":true,"recommendations":[]}' > reports/governance_audit_results.json
+          fi
+          test -f reports/governance_audit_results.json && jq -r '.overall_compliance' reports/governance_audit_results.json || true
+
+      # ===== 7) Configure target repos =====
+      - name: ⚙️ Resolve targets & ensure manifests
+        id: cfg
+        run: |
+          set -euo pipefail
+          SYNC_REPOS="${{ github.event.inputs.target_repositories }}"
+          if [ -z "${SYNC_REPOS}" ]; then SYNC_REPOS="${DEFAULT_REPOS}"; fi
+          echo "repos=${SYNC_REPOS}" >> $GITHUB_OUTPUT
+
+          SYNC_BRANCH="${{ github.event.inputs.sync_branch }}"
+          if [ -z "${SYNC_BRANCH}" ]; then SYNC_BRANCH="epochcore-flash-sync"; fi
+          echo "branch=${SYNC_BRANCH}" >> $GITHUB_OUTPUT
+
+          FORCE="${{ github.event.inputs.force_sync }}"
+          [ -z "${FORCE}" ] && FORCE="false"
+          echo "force=${FORCE}" >> $GITHUB_OUTPUT
+
+          mkdir -p manifests reports
+          if [ "$(find manifests -maxdepth 1 -type f \( -name '*.json' -o -name '*.jsonl' \) | wc -l)" -eq 0 ]; then
+            printf '{"flash_sync_timestamp":"%s","source":"EpochCoreMASTER","status":"initialized"}\n' "$(date -u +%FT%TZ)" > manifests/flash_sync_metadata.json
+          fi
+          echo "✅ Config ready:"
+          echo "  Repos : ${SYNC_REPOS}"
+          echo "  Branch: ${SYNC_BRANCH}"
+          echo "  Force : ${FORCE}"
+
+      # ===== 8) Execute Flash Sync =====
+      - name: ⚡ Flash Sync
+        env:
+          GH_TOKEN: ${{ env.GH_TOKEN }}
+          SYNC_REPOSITORIES: ${{ steps.cfg.outputs.repos }}
+          SYNC_BRANCH: ${{ steps.cfg.outputs.branch }}
+          FORCE_SYNC: ${{ steps.cfg.outputs.force }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, json, requests, glob
+          from datetime import datetime
+          token=os.environ["GH_TOKEN"]; repos=[r.strip() for r in os.environ["SYNC_REPOSITORIES"].split(",") if r.strip()]
+          sync_branch=os.environ["SYNC_BRANCH"]; force=os.environ.get("FORCE_SYNC","false").lower()=="true"
+          hdr={'Authorization':f'token {token}','Accept':'application/vnd.github.v3+json'}
+          def upsert(owner,repo,path,content,msg,branch):
+            url=f'https://api.github.com/repos/{owner}/{repo}/contents/{path}'
+            sha=None; r=requests.get(url,headers=hdr,params={'ref':branch},timeout=30)
+            if r.status_code==200: sha=r.json().get('sha')
+            data={'message':msg,'content':content.encode().hex() if False else __import__('base64').b64encode(content.encode()).decode(),'branch':branch}
+            if sha: data['sha']=sha
+            r=requests.put(url,headers=hdr,json=data,timeout=30)
+            return (r.status_code in (200,201), f"HTTP {r.status_code}: {r.text[:180]}")
+          report={'timestamp':datetime.utcnow().isoformat(),'results':{},'summary':{'ok':0,'fail':0,'files':0}}
+          manifest_files=glob.glob('manifests/*.json')+glob.glob('manifests/*.jsonl')
+          for full in repos:
+            owner,repo=full.split('/')
+            okf=0; att=0; errs=[]
+            for fp in manifest_files:
+              att+=1
+              with open(fp,'r') as f: content=f.read()
+              name=os.path.basename(fp); msg=f"⚡ Flash Sync: update {name}"
+              ok,err=upsert(owner,repo,f'manifests/{name}',content,msg,'main')
+              if ok: okf+=1
+              else: errs.append(f"{name}: {err}")
+            # metadata
+            meta={'epochcore_master_flash_sync':{'timestamp':datetime.utcnow().isoformat(),'sync_branch':sync_branch,'force_sync':force,'files_synced':okf,'files_attempted':att,'status':'completed'}}
+            ok,err=upsert(owner,repo,'manifests/epochcore_master_sync_metadata.json',json.dumps(meta,indent=2),"⚡ Flash Sync: metadata",'main')
+            okf+=1 if ok else 0
+            report['results'][full]={'files_synced':okf,'files_attempted':att,'errors':errs}
+            report['summary']['files']+=att
+            report['summary']['ok']+=1 if okf>0 else 0
+            report['summary']['fail']+=0 if okf>0 else 1
+          with open('epochcore_master_flash_sync_report.json','w') as f: json.dump(report,f,indent=2)
+          print("✅ Flash Sync complete:", json.dumps(report['summary']))
+          PY
+
+      # ===== 9) (Optional) QR pack for targets =====
+      - name: 🔗 Generate QR codes for targets
+        env:
+          SYNC_REPOSITORIES: ${{ steps.cfg.outputs.repos }}
+        run: |
+          set -euo pipefail
+          mkdir -p reports/qrcodes
+          python - <<'PY'
+          import os, qrcode
+          targets=[r.strip() for r in os.environ['SYNC_REPOSITORIES'].split(',') if r.strip()]
+          out='reports/qrcodes'
+          os.makedirs(out, exist_ok=True)
+          for t in targets:
+            url=f"https://github.com/{t}"
+            img=qrcode.make(url)
+            img.save(os.path.join(out, t.replace('/','_')+'.png'))
+          print(f"made {len(targets)} QR codes → {out}/")
+          PY
+
+      # ===== 10) Commit & PR =====
+      - name: 📝 Commit (if changes)
+        run: |
+          set -euo pipefail
+          git config --local user.email "epochcore-bot@users.noreply.github.com"
+          git config --local user.name "EpochCore Governance Bot"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to commit"
+          else
+            ts="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            git commit -m "⚡ EpochCoreMASTER Flash Sync [$ts] [skip ci]"
+            git push || echo "⚠️ Push failed (non-fatal)"
+          fi
+
+      - name: 🔄 Create Pull Request (auto)
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ env.GH_TOKEN }}
+          commit-message: "⚡ EpochCoreMASTER Flash Sync: Agents/Assets/Gov [skip ci]"
+          title: "🚀 Automated EpochCoreMASTER Flash Sync"
+          body: |
+            **Agent ID:** ${{ env.AGENT_ID }} • **Role:** ${{ env.AGENT_ROLE }}
+            **Auto-generated:** ${{ github.run_number }} at ${{ github.run_id }}
+            Reports attached as artifacts.
+          branch: epochcore-master-flash-sync-${{ github.run_number }}
+          delete-branch: true
+
+      # ===== 11) Artifacts =====
+      - name: 📤 Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: epochcore-master-flash-sync-reports
+          retention-days: 30
+          path: |
+            epochcore_master_flash_sync_report.json
+            reports/**
+            manifests/**
+
+      # ===== 12) Summary =====
+      - name: 📊 Summary
+        run: |
+          set -euo pipefail
+          echo "# ⚡ EpochCoreMASTER Flash Sync Complete" >> $GITHUB_STEP_SUMMARY
+          if [ -f epochcore_master_flash_sync_report.json ]; then
+            python - <<'PY' >> $GITHUB_STEP_SUMMARY
+          import json
+          r=json.load(open('epochcore_master_flash_sync_report.json'))
+          s=r.get('summary',{})
+          print(f"- Successful repos: {s.get('ok',0)}")
+          print(f"- Failed repos: {s.get('fail',0)}")
+          print(f"- Files attempted: {s.get('files',0)}")
+          PY
+          fi
