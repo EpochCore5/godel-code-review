@@ -1,0 +1,14 @@
+﻿name: Godel Code Review
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godel Swarm Review
+        uses: Jvryan92/integrity-gate-action@v2
+        with:
+          swarm-review: 'true'
+          swarm-agents: '8'
