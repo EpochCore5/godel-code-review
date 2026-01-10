@@ -64,7 +64,7 @@ inputs:
   worker-endpoint:
     description: 'Custom API endpoint (Enterprise)'
     required: false
-    default: 'https://epochcore-unified-worker.epochcoreras.workers.dev'
+    default: 'https://godel-task-router.com'
 
   # AWS Integration (Enterprise)
   aws-bedrock:
