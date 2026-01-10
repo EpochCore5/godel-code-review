@@ -1,8 +1,8 @@
-name: 'Gödel Code Review v3.0'
-description: '52-Agent AI Code Review with Auto-Fix, Compression, Watermarking & Optimization. AWS Partner Verified.'
+name: 'Gödel Task Router'
+description: '52-Agent AI Code Review with Auto-Fix, Watermarking & Optimization. Security scanning, dependency audit, code compression. Free tier available.'
 author: 'EpochCore Quantum - AWS Partner (S-0084812)'
 branding:
-  icon: 'shield'
+  icon: 'cpu'
   color: 'purple'
 
 inputs:
@@ -16,31 +16,31 @@ inputs:
     required: false
     default: 'true'
   swarm-agents:
-    description: 'Number of agents (2-52)'
+    description: 'Number of agents (2-52). Free: 8, Pro: 26, Enterprise: 52'
     required: false
     default: '8'
 
-  # NEW: Auto-Fix Features
+  # Auto-Fix Features (v3.0)
   auto-fix:
-    description: 'Automatically fix security issues and code smells'
+    description: '[FREE] Automatically fix security issues and code smells'
     required: false
     default: 'true'
   optimize:
-    description: 'Apply code optimizations (var→const, remove console.log, etc.)'
+    description: '[PRO] Apply code optimizations (var→const, remove console.log)'
     required: false
-    default: 'true'
+    default: 'false'
   compress:
-    description: 'Generate minified versions of JS/CSS files'
+    description: '[PRO] Generate minified versions of JS/CSS files'
     required: false
     default: 'false'
   watermark:
-    description: 'Add quantum provenance watermarks to code files'
+    description: '[PRO] Add quantum provenance watermarks to code files'
     required: false
-    default: 'true'
+    default: 'false'
   audit-deps:
-    description: 'Audit and auto-fix vulnerable npm dependencies'
+    description: '[PRO] Audit and auto-fix vulnerable npm dependencies'
     required: false
-    default: 'true'
+    default: 'false'
 
   # Security Options
   signature-verify:
@@ -58,23 +58,31 @@ inputs:
 
   # Enterprise Options
   license-key:
-    description: 'EpochCore license key for Pro/Enterprise'
+    description: 'EpochCore license key for Pro ($29/mo) or Enterprise ($199/mo)'
     required: false
     default: ''
   worker-endpoint:
-    description: 'Custom API endpoint'
+    description: 'Custom API endpoint (Enterprise)'
     required: false
     default: 'https://epochcore-unified-worker.epochcoreras.workers.dev'
 
-  # AWS Integration
+  # AWS Integration (Enterprise)
   aws-bedrock:
-    description: 'Use AWS Bedrock for AI (requires AWS creds)'
+    description: '[ENTERPRISE] Use AWS Bedrock Claude 3 for AI review'
     required: false
     default: 'false'
+  aws-bedrock-model:
+    description: 'Bedrock model: claude-3-sonnet, claude-3-haiku'
+    required: false
+    default: 'claude-3-haiku'
   aws-security-hub:
-    description: 'Export findings to AWS Security Hub'
+    description: '[ENTERPRISE] Export findings to AWS Security Hub'
     required: false
     default: 'false'
+  aws-region:
+    description: 'AWS region for Bedrock/Security Hub'
+    required: false
+    default: 'us-east-1'
 
 outputs:
   integrity-score:
@@ -98,4 +106,4 @@ runs:
   using: 'node20'
   main: 'dist/index.js'
 
-# QUANTUM_WATERMARK: GÖDEL_SEAL=40668c787c463ca5 V=3.0 SWARM=52 EPOCH=2026-01-09
+# QUANTUM_WATERMARK: GÖDEL_SEAL=40668c787c463ca5 V=3.0 ROUTER=true EPOCH=2026-01-09
