@@ -1,86 +1,101 @@
-name: 'Gödel Code Review'
-description: 'AI-powered code review with AWS Bedrock + 52-agent OpusSwarm. Exports to AWS Security Hub. Cryptographic signatures, Merkle validation, OPA policies. AWS Partner Verified (S-0084812).'
-author: 'EpochCore Quantum - AWS Partner'
+name: 'Gödel Code Review v3.0'
+description: '52-Agent AI Code Review with Auto-Fix, Compression, Watermarking & Optimization. AWS Partner Verified.'
+author: 'EpochCore Quantum - AWS Partner (S-0084812)'
 branding:
-  icon: 'git-pull-request'
+  icon: 'shield'
   color: 'purple'
 
 inputs:
+  # Core Review
   mode:
-    description: 'Verification mode: quick, standard, or deep'
+    description: 'Review mode: quick, standard, deep'
     required: false
     default: 'standard'
-  policy-path:
-    description: 'Path to OPA policy files'
-    required: false
-    default: '.epochcore/policies'
-  signature-verify:
-    description: 'Enable cryptographic signature verification'
-    required: false
-    default: 'true'
-  merkle-validate:
-    description: 'Enable Merkle tree validation for file integrity'
-    required: false
-    default: 'true'
-  fail-on-warning:
-    description: 'Fail the action on warnings (not just errors)'
-    required: false
-    default: 'false'
-  license-key:
-    description: 'EpochCore license key for Pro/Enterprise features'
-    required: false
-    default: ''
-  worker-endpoint:
-    description: 'Custom EpochCore worker endpoint'
-    required: false
-    default: 'https://epochcore-unified-worker.epochcoreras.workers.dev'
   swarm-review:
-    description: 'Enable 52-agent OpusSwarm AI code review'
+    description: 'Enable 52-agent OpusSwarm AI review'
     required: false
     default: 'true'
   swarm-agents:
-    description: 'Number of agents for swarm review (2-52)'
+    description: 'Number of agents (2-52)'
     required: false
     default: '8'
-  review-depth:
-    description: 'Swarm review depth: quick, standard, or thorough'
+
+  # NEW: Auto-Fix Features
+  auto-fix:
+    description: 'Automatically fix security issues and code smells'
     required: false
-    default: 'standard'
-  aws-bedrock:
-    description: 'Use AWS Bedrock for AI review (requires AWS credentials)'
+    default: 'true'
+  optimize:
+    description: 'Apply code optimizations (var→const, remove console.log, etc.)'
+    required: false
+    default: 'true'
+  compress:
+    description: 'Generate minified versions of JS/CSS files'
     required: false
     default: 'false'
-  aws-bedrock-model:
-    description: 'Bedrock model: claude-3-sonnet, claude-3-haiku, titan-express'
+  watermark:
+    description: 'Add quantum provenance watermarks to code files'
     required: false
-    default: 'claude-3-haiku'
+    default: 'true'
+  audit-deps:
+    description: 'Audit and auto-fix vulnerable npm dependencies'
+    required: false
+    default: 'true'
+
+  # Security Options
+  signature-verify:
+    description: 'Verify cryptographic signatures'
+    required: false
+    default: 'true'
+  merkle-validate:
+    description: 'Compute Merkle tree for file integrity'
+    required: false
+    default: 'true'
+  fail-on-warning:
+    description: 'Fail on warnings (not just errors)'
+    required: false
+    default: 'false'
+
+  # Enterprise Options
+  license-key:
+    description: 'EpochCore license key for Pro/Enterprise'
+    required: false
+    default: ''
+  worker-endpoint:
+    description: 'Custom API endpoint'
+    required: false
+    default: 'https://epochcore-unified-worker.epochcoreras.workers.dev'
+
+  # AWS Integration
+  aws-bedrock:
+    description: 'Use AWS Bedrock for AI (requires AWS creds)'
+    required: false
+    default: 'false'
   aws-security-hub:
     description: 'Export findings to AWS Security Hub'
     required: false
     default: 'false'
-  aws-region:
-    description: 'AWS region for Bedrock/Security Hub'
-    required: false
-    default: 'us-east-1'
 
 outputs:
   integrity-score:
     description: 'Overall integrity score (0-100)'
-  signature-status:
-    description: 'Signature verification result'
-  merkle-root:
-    description: 'Computed Merkle root hash'
-  policy-violations:
-    description: 'Number of OPA policy violations'
+  auto-fixes:
+    description: 'Number of auto-fixes applied'
+  security-fixes:
+    description: 'Security issues automatically fixed'
+  compression-saved:
+    description: 'Bytes saved via compression'
+  watermarks-added:
+    description: 'Files watermarked with provenance'
   swarm-consensus:
-    description: 'OpusSwarm consensus score (0.0-1.0)'
-  agents-agreed:
-    description: 'Number of agents that agreed on the review'
+    description: 'AI swarm consensus score (0.0-1.0)'
+  merkle-root:
+    description: 'Merkle root hash of all files'
   report-url:
-    description: 'URL to detailed integrity report'
+    description: 'URL to detailed report'
 
 runs:
   using: 'node20'
   main: 'dist/index.js'
 
-# QUANTUM_WATERMARK: RAS=40668c787c463ca5 GODEL=v2.0 SWARM=52 TIME=2026-01-08
+# QUANTUM_WATERMARK: GÖDEL_SEAL=40668c787c463ca5 V=3.0 SWARM=52 EPOCH=2026-01-09

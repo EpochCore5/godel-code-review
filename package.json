@@ -1,53 +1,33 @@
 {
   "name": "godel-code-review",
-  "version": "2.0.0",
-  "description": "AI-powered code review using 52-agent OpusSwarm consensus. Includes cryptographic signatures, Merkle tree validation, and OPA policy compliance.",
+  "version": "3.0.0",
+  "description": "52-Agent AI Code Review with Auto-Fix, Compression, Watermarking & Optimization",
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/index.js -o dist",
     "test": "jest",
-    "prepare": "npm run build"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/epochcoreqcs/godel-code-review.git"
+    "lint": "eslint src/"
   },
   "keywords": [
     "github-action",
     "code-review",
     "ai",
-    "swarm",
-    "integrity",
     "security",
-    "merkle-tree",
-    "opa",
-    "signatures",
-    "epochcore",
     "quantum",
-    "opus-swarm",
-    "consensus"
+    "watermark",
+    "optimization"
   ],
-  "author": {
-    "name": "John Vincent Ryan",
-    "email": "Ceo.QuantumAmazon@EpochCoreQCS.com"
-  },
+  "author": "EpochCore Quantum <quantum@epochcore.io>",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.10.1",
+    "@actions/core": "^1.10.0",
     "@actions/github": "^6.0.0"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.1",
-    "jest": "^29.7.0"
+    "@vercel/ncc": "^0.38.0"
   },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "_quantum_seal": {
-    "ras": "40668c787c463ca5",
-    "version": "2.0.0",
-    "swarm_agents": 52,
-    "coherence": 0.999999,
-    "founder": "JOHN VINCENT RYAN"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jvryan92/integrity-gate-action.git"
   }
 }
