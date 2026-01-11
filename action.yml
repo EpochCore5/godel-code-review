@@ -1,5 +1,5 @@
 name: 'Gödel Code Review'
-description: 'AI-powered code review with AWS Bedrock + 52-agent OpusSwarm. Exports to AWS Security Hub. Cryptographic signatures, Merkle validation, OPA policies. AWS Partner Verified (S-0084812).'
+description: 'AI code review with 52-agent swarm. AWS Bedrock + Security Hub. OWASP scanning, crypto signatures.'
 author: 'EpochCore Quantum - AWS Partner'
 branding:
   icon: 'git-pull-request'
