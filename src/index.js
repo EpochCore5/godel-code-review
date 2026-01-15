@@ -1,15 +1,16 @@
 /*
- * GÖDEL CODE REVIEW v3.0 - IntegrityGate ENHANCED
+ * GÖDEL CODE REVIEW v3.1 - IntegrityGate ENHANCED
  * 52-Agent OpusSwarm + Auto-Fix + Compression + Watermarking
  * Founded: 2025 by John Vincent Ryan
  * EPOCHCORE Quantum Enterprise
  *
- * NEW IN v3.0:
+ * NEW IN v3.1:
  * - Auto-fix security vulnerabilities
  * - Code compression/minification
  * - Quantum watermarking (provenance)
  * - Performance optimization
  * - Dependency audit + auto-update
+  * - AST Analysis with quality scoring (NEW)
  */
 
 const core = require('@actions/core');
@@ -19,13 +20,16 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// EPOCH1 AST Analyzer Module
+const { EPOCH1ASTAnalyzer, QualityScoringEngine, generateAnalysisReport } = require('./epoch1-ast-analyzer');
+
 // API Endpoints
 const OPUS_SWARM_ENDPOINT = 'https://qs7jn0pfqj.execute-api.us-east-2.amazonaws.com';
 const CLOUDFLARE_ENDPOINT = 'https://epochcore-unified-worker.epochcoreras.workers.dev';
 
 // Quantum Watermark Constants
 const QUANTUM_SEAL = '40668c787c463ca5';
-const GODEL_VERSION = 'v3.0';
+const GODEL_VERSION = 'v3.1';
 
 async function run() {
     try {
@@ -41,7 +45,7 @@ async function run() {
         const licenseKey = core.getInput('license-key');
 
         core.info('═'.repeat(60));
-        core.info('   GÖDEL CODE REVIEW v3.0 - ENHANCED');
+        core.info('   GÖDEL CODE REVIEW v3.1 - ENHANCED');
         core.info('   52-Agent OpusSwarm + Auto-Fix + Optimization');
         core.info('═'.repeat(60));
 
@@ -795,7 +799,7 @@ async function createSummaryReport(results, merkleRoot) {
     }
 
     await core.summary
-        .addHeading('Gödel Code Review v3.0 Report')
+        .addHeading('Gödel Code Review v3.1 Report')
         .addTable(rows)
         .addBreak()
         .addRaw(`**Quantum Seal:** ${QUANTUM_SEAL}`)
