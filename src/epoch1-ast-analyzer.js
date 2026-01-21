@@ -206,10 +206,64 @@ class QualityScoringEngine {
 }
 
 // ============================================================================
+// GENERATE ANALYSIS REPORT
+// ============================================================================
+
+function generateAnalysisReport(results, options = {}) {
+  const engine = new QualityScoringEngine();
+  const report = engine.generateReport(results, options);
+
+  // Enhanced report with markdown formatting
+  let markdown = `# EPOCH1 Code Analysis Report\n\n`;
+  markdown += `**Generated:** ${report.timestamp}\n\n`;
+  markdown += `## Summary\n\n`;
+  markdown += `| Metric | Value |\n`;
+  markdown += `|--------|-------|\n`;
+  markdown += `| Total Files | ${report.summary.totalFiles} |\n`;
+  markdown += `| Overall Score | ${report.summary.overallScore}/100 |\n`;
+  markdown += `| Critical Issues | ${report.summary.criticalIssues} |\n`;
+  markdown += `| Warnings | ${report.summary.warnings} |\n`;
+  markdown += `| Suggestions | ${report.summary.suggestions} |\n\n`;
+
+  if (report.details.length > 0 && options.includeDetails !== false) {
+    markdown += `## File Details\n\n`;
+    for (const detail of report.details.slice(0, options.maxFiles || 20)) {
+      markdown += `### ${detail.file}\n`;
+      markdown += `- **Score:** ${detail.score}/100\n`;
+      markdown += `- **Complexity:** ${detail.complexity}\n`;
+      markdown += `- **Maintainability:** ${detail.maintainability}\n`;
+
+      if (detail.issues.length > 0) {
+        markdown += `\n**Issues:**\n`;
+        for (const issue of detail.issues) {
+          const icon = issue.severity === 'critical' ? '🔴' : issue.severity === 'warning' ? '🟡' : 'ℹ️';
+          markdown += `- ${icon} [${issue.severity.toUpperCase()}] ${issue.message}\n`;
+        }
+      }
+
+      if (detail.suggestions.length > 0) {
+        markdown += `\n**Suggestions:**\n`;
+        for (const suggestion of detail.suggestions) {
+          markdown += `- 💡 ${suggestion.message}\n`;
+        }
+      }
+      markdown += `\n`;
+    }
+  }
+
+  return {
+    report,
+    markdown,
+    score: report.summary.overallScore
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 module.exports = {
   EPOCH1ASTAnalyzer,
-  QualityScoringEngine
+  QualityScoringEngine,
+  generateAnalysisReport
 };
