@@ -1,7 +1,7 @@
 {
   "name": "godel-code-review",
-  "version": "3.0.0",
-  "description": "52-Agent AI Code Review with Auto-Fix, Compression, Watermarking & Optimization",
+  "version": "3.2.0",
+  "description": "52-Agent AI Code Review with Slack, AWS Bedrock, SARIF Export, Auto-Fix & Optimization",
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/index.js -o dist",
@@ -15,7 +15,12 @@
     "security",
     "quantum",
     "watermark",
-    "optimization"
+    "optimization",
+    "slack",
+    "aws-bedrock",
+    "sarif",
+    "gitlab",
+    "bitbucket"
   ],
   "author": "EpochCore Quantum <quantum@epochcore.io>",
   "license": "MIT",

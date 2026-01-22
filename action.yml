@@ -1,5 +1,5 @@
 name: 'Gödel Task Router'
-description: 'AI Code Review with Auto-Fix, Watermarking & Optimization. Free tier available.'
+description: 'AI Code Review with Slack, AWS Bedrock, SARIF, Auto-Fix & Optimization. Free tier available.'
 author: 'EpochCore Quantum - AWS Partner (S-0084812)'
 branding:
   icon: 'cpu'
@@ -84,6 +84,12 @@ inputs:
     required: false
     default: 'us-east-1'
 
+  # SARIF Export (v3.2)
+  sarif-export:
+    description: '[PRO] Export findings in SARIF format for GitHub Code Scanning'
+    required: false
+    default: 'true'
+
 outputs:
   integrity-score:
     description: 'Overall integrity score (0-100)'
@@ -101,6 +107,10 @@ outputs:
     description: 'Merkle root hash of all files'
   report-url:
     description: 'URL to detailed report'
+  tier:
+    description: 'License tier (community, pro, enterprise)'
+  sarif-file:
+    description: 'Path to SARIF output file'
 
 runs:
   using: 'node20'

@@ -1,16 +1,24 @@
 /*
- * GÖDEL CODE REVIEW v3.1 - IntegrityGate ENHANCED
+ * GÖDEL CODE REVIEW v3.2 - IntegrityGate ENHANCED
  * 52-Agent OpusSwarm + Auto-Fix + Compression + Watermarking
  * Founded: 2025 by John Vincent Ryan
  * EPOCHCORE Quantum Enterprise
  *
- * NEW IN v3.1:
+ * NEW IN v3.2:
+ * - Slack integration with notifications and slash commands
+ * - AWS Bedrock Claude 3 AI-powered code review
+ * - AWS Security Hub findings export
+ * - SARIF export for GitHub Code Scanning
+ * - Enterprise webhook server (GitHub, GitLab, Bitbucket)
+ * - Pricing tier management (Community/Pro/Enterprise)
+ *
+ * PREVIOUS (v3.1):
  * - Auto-fix security vulnerabilities
  * - Code compression/minification
  * - Quantum watermarking (provenance)
  * - Performance optimization
  * - Dependency audit + auto-update
-  * - AST Analysis with quality scoring (NEW)
+ * - AST Analysis with quality scoring
  */
 
 const core = require('@actions/core');
@@ -23,13 +31,25 @@ const { execSync } = require('child_process');
 // EPOCH1 AST Analyzer Module
 const { EPOCH1ASTAnalyzer, QualityScoringEngine, generateAnalysisReport } = require('./epoch1-ast-analyzer');
 
+// Integration Modules (v3.2)
+const {
+    IntegrationHub,
+    quickSetup,
+    SlackIntegration,
+    BedrockCodeReviewer,
+    SARIFExporter,
+    GitHubCodeScanningUploader,
+    createIntegrationManager,
+    PRICING_TIERS
+} = require('./integrations');
+
 // API Endpoints
 const OPUS_SWARM_ENDPOINT = 'https://qs7jn0pfqj.execute-api.us-east-2.amazonaws.com';
 const CLOUDFLARE_ENDPOINT = 'https://epochcore-unified-worker.epochcoreras.workers.dev';
 
 // Quantum Watermark Constants
 const QUANTUM_SEAL = '40668c787c463ca5';
-const GODEL_VERSION = 'v3.1';
+const GODEL_VERSION = 'v3.2';
 
 async function run() {
     try {
@@ -44,9 +64,22 @@ async function run() {
         const swarmAgents = parseInt(core.getInput('swarm-agents')) || 8;
         const licenseKey = core.getInput('license-key');
 
+        // New v3.2 Integration Inputs
+        const enableBedrock = core.getInput('aws-bedrock') === 'true';
+        const bedrockModel = core.getInput('aws-bedrock-model') || 'claude-3-haiku';
+        const enableSecurityHub = core.getInput('aws-security-hub') === 'true';
+        const awsRegion = core.getInput('aws-region') || 'us-east-1';
+        const slackWebhook = process.env.SLACK_WEBHOOK_URL;
+        const enableSarif = core.getInput('sarif-export') !== 'false';
+
+        // Initialize Integration Hub based on license tier
+        const integrationManager = createIntegrationManager(licenseKey);
+        const tier = integrationManager.tier;
+        const tierInfo = integrationManager.getTierInfo();
+
         core.info('═'.repeat(60));
-        core.info('   GÖDEL CODE REVIEW v3.1 - ENHANCED');
-        core.info('   52-Agent OpusSwarm + Auto-Fix + Optimization');
+        core.info('   GÖDEL CODE REVIEW v3.2 - INTEGRATION ENHANCED');
+        core.info('   52-Agent OpusSwarm + Slack + Bedrock + SARIF');
         core.info('═'.repeat(60));
 
         const results = {
@@ -143,6 +176,107 @@ async function run() {
         core.info(`Merkle Root: ${merkleRoot}`);
         core.endGroup();
 
+        // Step 9: AWS Bedrock AI Review (Enterprise)
+        if (enableBedrock && integrationManager.hasFeature('awsBedrock')) {
+            core.startGroup('🧠 AWS Bedrock AI Review');
+            try {
+                const bedrock = new BedrockCodeReviewer({
+                    region: awsRegion,
+                    model: bedrockModel
+                });
+
+                if (bedrock.isConfigured()) {
+                    const codeFiles = files
+                        .filter(f => isCodeFile(f.path))
+                        .slice(0, 20)
+                        .map(f => ({
+                            path: f.relativePath,
+                            content: fs.readFileSync(f.path, 'utf8').substring(0, 8000)
+                        }));
+
+                    const bedrockResult = await bedrock.reviewCode(codeFiles, {
+                        autoFix: autoFix,
+                        model: bedrockModel
+                    });
+
+                    if (bedrockResult.success) {
+                        results.findings.push(...(bedrockResult.findings || []));
+                        results.bedrockScore = bedrockResult.score;
+                        core.info(`Bedrock AI Score: ${bedrockResult.score}/100`);
+                    }
+                } else {
+                    core.info('Bedrock not configured - skipping AI review');
+                }
+            } catch (error) {
+                core.warning(`Bedrock review error: ${error.message}`);
+            }
+            core.endGroup();
+        }
+
+        // Step 10: SARIF Export (Pro+)
+        let sarifOutput = null;
+        if (enableSarif && integrationManager.hasFeature('sarifExport')) {
+            core.startGroup('📋 SARIF Export');
+            try {
+                const sarif = new SARIFExporter({ toolVersion: GODEL_VERSION });
+                sarifOutput = sarif.export(results.findings, {
+                    repository: `${github.context.repo.owner}/${github.context.repo.repo}`,
+                    sha: github.context.sha,
+                    ref: github.context.ref,
+                    integrityScore: results.integrityScore,
+                    swarmConsensus: results.swarmConsensus,
+                    merkleRoot: merkleRoot
+                });
+
+                // Save SARIF file
+                const sarifPath = 'godel-results.sarif';
+                fs.writeFileSync(sarifPath, JSON.stringify(sarifOutput, null, 2));
+                core.info(`SARIF report saved: ${sarifPath}`);
+
+                // Upload to GitHub Code Scanning if available
+                if (process.env.GITHUB_TOKEN) {
+                    const uploader = new GitHubCodeScanningUploader();
+                    const uploadResult = await uploader.upload(sarifOutput, {
+                        owner: github.context.repo.owner,
+                        repo: github.context.repo.repo,
+                        sha: github.context.sha,
+                        ref: github.context.ref
+                    });
+                    if (uploadResult.success) {
+                        core.info(`Uploaded to GitHub Code Scanning: ${uploadResult.sarifId}`);
+                    }
+                }
+            } catch (error) {
+                core.warning(`SARIF export error: ${error.message}`);
+            }
+            core.endGroup();
+        }
+
+        // Step 11: Slack Notification (Pro+)
+        if (slackWebhook && integrationManager.hasFeature('slackIntegration')) {
+            core.startGroup('💬 Slack Notification');
+            try {
+                const slack = new SlackIntegration({ webhookUrl: slackWebhook });
+                const notifyResult = await slack.sendReviewNotification({
+                    repository: `${github.context.repo.owner}/${github.context.repo.repo}`,
+                    pullRequest: {
+                        number: github.context.payload?.pull_request?.number,
+                        url: github.context.payload?.pull_request?.html_url
+                    },
+                    integrityScore: results.integrityScore,
+                    findings: results.findings,
+                    autoFixes: results.autoFixApplied,
+                    swarmConsensus: results.swarmConsensus,
+                    merkleRoot: merkleRoot,
+                    author: github.context.actor
+                });
+                core.info(`Slack notification: ${notifyResult.success ? 'sent' : 'failed'}`);
+            } catch (error) {
+                core.warning(`Slack notification error: ${error.message}`);
+            }
+            core.endGroup();
+        }
+
         // Calculate final score
         results.integrityScore = calculateScore(results);
 
@@ -154,6 +288,8 @@ async function run() {
         core.setOutput('security-fixes', results.securityIssuesFixed.toString());
         core.setOutput('swarm-consensus', results.swarmConsensus?.toString() || 'N/A');
         core.setOutput('merkle-root', merkleRoot);
+        core.setOutput('tier', tier);
+        core.setOutput('sarif-file', enableSarif ? 'godel-results.sarif' : '');
 
         // Create summary report
         await createSummaryReport(results, merkleRoot);
