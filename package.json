@@ -1,7 +1,7 @@
 {
   "name": "godel-task-router",
-  "version": "3.4.0",
-  "description": "Quantum-Classical Code Analysis - 52-Agent Swarm + 26-Node Flash Sync + GENESIS Capsule + Autonomous Agents @ 7777.77Hz",
+  "version": "3.5.0",
+  "description": "Quantum-Classical Code Analysis - 52-Agent Swarm + 26-Node Flash Sync + AWS Bedrock + Slack + SARIF + Autonomous Agents @ 7777.77Hz",
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
@@ -11,7 +11,8 @@
     "./swarm": "./src/swarm-flash-sync.js",
     "./autonomous": "./src/autonomous-agent-controller.js",
     "./slack": "./src/slack-autonomous-integration.js",
-    "./orchestrator": "./src/flash-sync-all-nodes.js"
+    "./orchestrator": "./src/flash-sync-all-nodes.js",
+    "./integrations": "./src/integrations/index.js"
   },
   "scripts": {
     "build": "ncc build src/index.js -o dist",
@@ -36,7 +37,11 @@
     "genesis-capsule",
     "no-trust-autonomy",
     "slack-integration",
-    "phi-amplification"
+    "phi-amplification",
+    "aws-bedrock",
+    "sarif",
+    "gitlab",
+    "bitbucket"
   ],
   "author": "EpochCore Quantum <quantum@epochcore.io>",
   "license": "MIT",

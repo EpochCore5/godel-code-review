@@ -1,5 +1,5 @@
 name: 'Gödel Task Router'
-description: 'Quantum-Classical Code Analysis with 52-Agent Swarm, EPOCH1 AST, Flash Sync @ 7777.77Hz'
+description: 'Quantum-Classical Code Analysis - 52-Agent Swarm + AWS Bedrock + Slack + SARIF + Flash Sync @ 7777.77Hz'
 author: 'EpochCore Quantum - AWS Partner (S-0084812)'
 branding:
   icon: 'cpu'
@@ -102,6 +102,12 @@ inputs:
     required: false
     default: 'us-east-1'
 
+  # SARIF Export (v3.2)
+  sarif-export:
+    description: '[PRO] Export findings in SARIF format for GitHub Code Scanning'
+    required: false
+    default: 'true'
+
 outputs:
   integrity-score:
     description: 'Overall integrity score (0-100)'
@@ -119,6 +125,10 @@ outputs:
     description: 'Merkle root hash of all files'
   report-url:
     description: 'URL to detailed report'
+  tier:
+    description: 'License tier (community, pro, enterprise)'
+  sarif-file:
+    description: 'Path to SARIF output file'
 
   # QCM Outputs (v3.2)
   qcm-score:
